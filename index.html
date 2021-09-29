@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="UTF-8">
+		<title>SALVIA-json</title>
+		<script src="libraries/jquery-3.5.1.min.js"></script>
+		<script src="libraries/papaparse.js"></script>
+		<script src="parsefunctions.js"></script>
+		<script src="filesave.js"></script>
+		<script src="objects.js"></script>
+		
+		
+		
+		<script>
+	
+			$(function(){
+							
+				/** upload old stats json **/
+				$("#uploadJSON").on('click', function(e){
+					e.preventDefault();
+					uploadExistingStatsJSON();
+					
+				});
+				
+				/** upload new result json **/
+				$("#uploadNewJSON").on('click', function(e){
+					e.preventDefault();
+					uploadNewReportJSON();
+					
+				});
+				
+				
+				
+			
+			
+			});
+
+				
+		</script>
+		<link rel="stylesheet" href="styles.css">
+			
+	</head>
+	<body>
+		<h1 class="maintitle">Salvia-reports</h1>
+		
+		<div class="container">
+			<article>
+				<div class="section__heading">
+					<h2 class="section__title">Tulokset<span id="results"></span></h2>
+				</div>
+				<section id="organisations" class="section-main">
+					
+				
+				</section>
+			
+			</article>
+			
+						
+			<aside>
+				<div class="section__heading openclose--open">
+					<h2 class="section__title">Tietojen lataus</h2>
+					<button class="openclose__button openclose--open" aria-label="Pienennä">&#xe98c;</button>
+				</div>
+				<section class="section-main">
+					
+					<fieldset>
+						<legend>Lisää aiemmin lisätty JSON</legend>
+						<form id="fileformJSON">
+							<label for="chosenJSONfile">Valitse tiedosto</label>
+							<input type="file" id="chosenJSONfile" name="chosenJSONfile">	
+							<input type="button" id="uploadJSON" value="lataa" />
+							
+						</form>
+					</fieldset>
+					
+					<fieldset>
+						<legend>Lisää uusi testiraportti</legend>
+						<form id="fileformNewJSON">
+							<label for="chosenNewJSONfile">Valitse tiedosto</label>
+							<input type="file" id="chosenNewJSONfile" name="chosenNewJSONfile">	
+							<input type="button" id="uploadNewJSON" value="lataa" />
+							
+						</form>
+					</fieldset>
+					
+					
+				</section>
+				
+			
+				
+				
+				<div class="section__heading openclose--closed">
+					<h2 class="section__title">Tulokset</h2>
+					<button class="openclose__button" aria-label="Avaa">&#xe98b;</button>
+				</div>
+				<section class="results section-main" style="display:none">
+					
+					<fieldset id="sources" class="results__group">
+						<legend>Ladatut tiedostot <span id="sourceFilesCount"></span></legend>
+						<ul>
+						
+						</ul>
+					</fieldset>
+					
+					
+				</section>			
+				
+				
+			
+			</aside>
+		</div>
+		
+	</body>
+
+</html>
