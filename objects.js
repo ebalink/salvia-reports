@@ -40,6 +40,13 @@ QW_Result.prototype.parseTests = function(data, filename){
 			}
 		})
 	})
+	
+	// now we add the rates for every test
+	this.testresults.forEach( test => {
+		if(test.getRate() != undefined){
+			test.rate_list.push(test.getRate());
+		}
+	})
 }
 
 TestResult = function(){
@@ -50,6 +57,71 @@ TestResult = function(){
 	this.count_warnings = 0;
 	this.count_failed = 0;
 	this.count_inapplicable = 0;
+	
+	// includes the rates from every test so we can get the median, mean, highest and lowest values
+	this.rate_list = new Array();
+}
+
+TestResult.prototype.getRate_mean = function(){
+	if(this.rate_list.length == 0){
+		return undefined;
+	}
+	let total = 0;
+	this.rate_list.forEach( rate => total += rate);
+	return total / this.rate_list.length;
+}
+
+TestResult.prototype.getRate_median = function(){
+	if(this.rate_list.length == 0){
+		return undefined;
+	}
+	this.rate_list.sort();
+	let med = 0;
+	if(this.rate_list.length > 1){
+		med = Math.round(this.rate_list.length / 2);
+	}
+	return this.rate_list[med];
+}
+
+TestResult.prototype.getRate_lowest = function(){
+	if(this.rate_list.length == 0){
+		return undefined;
+	}
+	let lowest = this.rate_list[0];
+	this.rate_list.forEach( val => {
+		if(val < lowest) {
+			lowest = val;
+		}
+	})
+	return lowest;
+}
+
+TestResult.prototype.getRate_highest = function(){
+	if(this.rate_list.length == 0){
+		return undefined;
+	}
+	let highest = this.rate_list[0];
+	this.rate_list.forEach( val => {
+		if(val > highest) {
+			highest = val;
+		}
+	})
+	return highest;
+}
+
+
+TestResult.prototype.getRate = function(){
+	if(this.getTotal() == 0){
+		return undefined;
+	}
+	return (((this.count_passed + this.count_warnings) / this.getTotal()));
+}
+
+TestResult.prototype.getRateForPrint = function(){
+	if(this.getTotal() == 0){
+		return " - ";
+	}
+	return (((this.count_passed + this.count_warnings) / this.getTotal()) * 100).toFixed(0) +" %";
 }
 
 TestResult.prototype.merge = function(newTestResult){
@@ -63,6 +135,10 @@ TestResult.prototype.merge = function(newTestResult){
 	this.count_warnings += newTestResult.count_warnings;
 	this.count_inapplicable += newTestResult.count_inapplicable;
 	this.count_failed += newTestResult.count_failed;
+	
+	if(newTestResult.rate_list[0] != null){
+		this.rate_list.push(newTestResult.rate_list[0]);
+	}
 }
 
 TestResult.prototype.addResult = function(resultType){
@@ -84,13 +160,13 @@ TestResult.prototype.addPassed = function(){
 	this.count_passed++;
 }
 TestResult.prototype.addWarning = function(){
-	this.count_passed++;
+	this.count_warnings++;
 }
 TestResult.prototype.addFailed = function(){
-	this.count_passed++;
+	this.count_failed++;
 }
 TestResult.prototype.addInapplicable = function(){
-	this.count_passed++;
+	this.count_inapplicable++;
 }
 TestResult.prototype.getTotal = function(){
 	return this.count_passed + this.count_warnings + this.count_failed;
@@ -144,12 +220,116 @@ Stats.prototype.getCount_testTypes = function(){
 
 Stats.prototype.getCount_testCases = function(){
 	let cases = 0;
-	for (const value of this.testresults.values()) {
-	  cases += value.getTotal_full();
-	}
+	this.testresults.forEach(value => cases += value.getTotal_full());
 	return cases;
 }
 
+Stats.prototype.getRates = function(median){
+	let tests = new Array();
+	
+	this.testresults.forEach(value => {
+		tests.push(value);
+	});	
+	if(median == true){
+		tests.sort(sortByRates_median);
+	}
+	else{
+		tests.sort(sortByRates);
+	}
+	
+	let sorted = new Array();
+	tests.forEach( value => {
+		let rate = {
+			"code" : value.code,
+			"name" : value.name,
+			"rate" : value.getRateForPrint(),
+			"rate_mean" : value.getRate_mean(),
+			"rate_median" : value.getRate_median(),
+			"rate_highest" : value.getRate_highest(),
+			"rate_lowest" : value.getRate_lowest(),
+			"count": value.getTotal()
+			
+		}
+		sorted.push(rate);
+	})
+	return sorted;
+}
+
+
+
+Stats.prototype.printRates = function(){
+	this.getRates().forEach(rate => {
+		console.log("["+rate.rate +"], testi: "+rate.code +" / \""+rate.name+"\", tehtyjä testejä: "+rate.count
+			+", ka.: " +getPercentage(rate.rate_mean)+", med.: "+getPercentage(rate.rate_median)+", korkein: "+getPercentage(rate.rate_highest)+ ", matalin: "+getPercentage(rate.rate_lowest) );
+	})
+}
+
+function sortByRates( testA, testB ) {
+	let a_total = testA.getTotal();
+	let a_rate = testA.getRate();
+	let b_total = testB.getTotal();
+	let b_rate = testB.getRate();
+	
+	if(a_total== 0 && b_total > 0) {
+		return 1;
+	}
+	else if(a_total > 0 && b_total == 0) {
+		return -1;
+	}
+	else if(a_total == 0 && b_total == 0) {
+		return testA.code.localeCompare(testB.code, undefined, {numeric: true});
+	}
+	else if(a_rate < b_rate){
+		return -1;
+	}
+	else if(a_rate > b_rate){
+		return 1;
+	}
+	else if(a_total > b_total){
+		return -1;
+	}
+	else if(a_total < b_total){
+		return 1;
+	}
+	return testA.code.localeCompare(testB.code, undefined, {numeric: true});
+}
+
+function sortByRates_median( testA, testB ) {
+	let a_total = testA.getTotal();
+	let a_rate = testA.getRate_median();
+	let b_total = testB.getTotal();
+	let b_rate = testB.getRate_median();
+	
+	if(a_total== 0 && b_total > 0) {
+		return 1;
+	}
+	else if(a_total > 0 && b_total == 0) {
+		return -1;
+	}
+	else if(a_total == 0 && b_total == 0) {
+		return testA.code.localeCompare(testB.code, undefined, {numeric: true});
+	}
+	else if(a_rate < b_rate){
+		return -1;
+	}
+	else if(a_rate > b_rate){
+		return 1;
+	}
+	else if(a_total > b_total){
+		return -1;
+	}
+	else if(a_total < b_total){
+		return 1;
+	}
+	return testA.code.localeCompare(testB.code, undefined, {numeric: true});
+}
+
+function getPercentage(value){
+	if(!(typeof value === 'number') || !isFinite(value)){
+		return " - ";
+	}
+	return (value * 100).toFixed(0) +" %";
+}
 
 
 /**
