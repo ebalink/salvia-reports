@@ -6,6 +6,20 @@ QW_Result = function(){
 	this.testresults = new Map();
 }
 
+/**
+ * return the test keys for all tests that have any other results than inapplicable
+ */
+QW_Result.prototype.getTestsWithResults = function() {
+	let results = [];
+	this.testresults.forEach( (value, key) => {
+		if(value.count_passed > 0 || value.count_failed > 0 || value.count_warnings > 0 ){
+			results.push(key);
+		}
+	})
+	return results;
+
+}
+
 QW_Result.prototype.parseTests = function(data, filename){
 	this.filename = filename;
 	let pages = Object.keys(data);
@@ -60,6 +74,8 @@ TestResult = function(){
 	
 	// includes the rates from every test so we can get the median, mean, highest and lowest values
 	this.rate_list = new Array();
+	// number of sites that this test resulted other than inapplicable
+	this.sites = 0;
 }
 
 TestResult.prototype.getRate_mean = function(){
@@ -218,6 +234,21 @@ Stats.prototype.merge = function(other){
 	
 }
 
+/**
+ * Browses through each test report stats and updates the test stat infos with number of sites this was successfully tested against
+ */
+Stats.prototype.updateSitesCount = function(){
+	//initialize
+	this.testresults.forEach(res => res.sites = 0 );
+	
+	// update
+	this.tests.forEach(qw => {
+		qw.getTestsWithResults().forEach(testkey => {
+			this.testresults.get(testkey).sites++;
+		})
+	})
+}
+
 Stats.prototype.addQWResult = function(data){
 	let qwresult = new QW_Result();
 	qwresult.parseTests(data);
@@ -284,7 +315,8 @@ Stats.prototype.getRates = function(median){
 			"rate_lowest" : value.getRate_lowest(),
 			"rate_lowerQ" : value.getRate_lowerQ(),
 			"rate_upperQ" : value.getRate_upperQ(),
-			"count": value.getTotal()
+			"count": value.getTotal(),
+			"sites": value.sites
 			
 		}
 		sorted.push(rate);
@@ -303,13 +335,41 @@ Stats.prototype.printRates = function(){
 }
 
 Stats.prototype.printRatesCSV = function(){
+	
+	this.updateSitesCount();
 	let content = [];
-	content.push(["test", "min", "lower", "median", "upper", "max"]);
+	content.push(["test", "sites", "min", "lower", "median", "upper", "max", "mean"]);
 	
 	this.getRates().forEach(rate => {
-		content.push([rate.code, getPercentage(rate.rate_lowest), getPercentage(rate.rate_lowerQ), getPercentage(rate.rate_median), getPercentage(rate.rate_upperQ), getPercentage(rate.rate_highest) ]);
+		content.push([rate.code, rate.sites, getPercentage(rate.rate_lowest), getPercentage(rate.rate_lowerQ), getPercentage(rate.rate_median), getPercentage(rate.rate_upperQ), getPercentage(rate.rate_highest), getPercentage(rate.rate_mean) ]);
 	})
 	exportToCSV(content);
+}
+
+Stats.prototype.printRatesCSV2 = function(){
+	this.updateSitesCount();
+	let content = new Map();
+	
+	this.testresults.forEach( (value, key) => {
+		content.set(key, new Array());
+	})
+	this.tests.forEach( qw => {
+		qw.testresults.forEach( (value, key) => {
+			content.get(key).push(value.getRate());
+		})
+	})
+	
+	// transform content to array
+	let content_array = [];
+	content.forEach( (value, key) => {
+		let row = [];
+		row.push(key);
+		value.forEach( rate => row.push(rate));
+		content_array.push(row);
+		
+		
+	})
+	exportToCSV(content_array);
 }
 
 function sortByRates( testA, testB ) {

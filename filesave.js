@@ -30,7 +30,13 @@ function replacer(key, value) {
       dataType: 'Stats',
       value: {...value}, // or with spread: value: [...value]
     };
+  } else if(value instanceof QW_Result) {
+    return {
+      dataType: 'QW_Result',
+      value: {...value}, // or with spread: value: [...value]
+    };
   } 
+
 else {
     return value;
   }
@@ -46,6 +52,9 @@ function reviver(key, value) {
     }
 	if (value.dataType === 'Stats') {
       return Object.assign(new Stats(), value.value);
+    }
+	if (value.dataType === 'QW_Result') {
+      return Object.assign(new QW_Result(), value.value);
     }
   }
   return value;
