@@ -83,6 +83,30 @@ TestResult.prototype.getRate_median = function(){
 	return this.rate_list[med];
 }
 
+TestResult.prototype.getRate_lowerQ = function(){
+	if(this.rate_list.length == 0){
+		return undefined;
+	}
+	this.rate_list.sort();
+	let x = 0;
+	if(this.rate_list.length > 1){
+		x = Math.round(this.rate_list.length * 0.25);
+	}
+	return this.rate_list[x];
+}
+
+TestResult.prototype.getRate_upperQ = function(){
+	if(this.rate_list.length == 0){
+		return undefined;
+	}
+	this.rate_list.sort();
+	let x = 0;
+	if(this.rate_list.length > 1){
+		x = Math.round(this.rate_list.length * 0.75 );
+	}
+	return this.rate_list[x];
+}
+
 TestResult.prototype.getRate_lowest = function(){
 	if(this.rate_list.length == 0){
 		return undefined;
@@ -247,6 +271,8 @@ Stats.prototype.getRates = function(median){
 			"rate_median" : value.getRate_median(),
 			"rate_highest" : value.getRate_highest(),
 			"rate_lowest" : value.getRate_lowest(),
+			"rate_lowerQ" : value.getRate_lowerQ(),
+			"rate_upperQ" : value.getRate_upperQ(),
 			"count": value.getTotal()
 			
 		}
@@ -259,9 +285,20 @@ Stats.prototype.getRates = function(median){
 
 Stats.prototype.printRates = function(){
 	this.getRates().forEach(rate => {
-		console.log("["+rate.rate +"], testi: "+rate.code +" / \""+rate.name+"\", tehtyjä testejä: "+rate.count
-			+", ka.: " +getPercentage(rate.rate_mean)+", med.: "+getPercentage(rate.rate_median)+", korkein: "+getPercentage(rate.rate_highest)+ ", matalin: "+getPercentage(rate.rate_lowest) );
+		console.log("["+rate.rate +"], testi: "+rate.code +" /  \""+rate.name+"\"\n\tTestattuja elementtejä: "+rate.count+", joista ehdot täytti "+rate.rate+" elementeistä.\n\t"
+			+ "Testatuista sivuista heikoimman tulos: "+getPercentage(rate.rate_lowest)+" ja parhaimman "+getPercentage(rate.rate_highest)+". Sivujen onnistumisen keskiarvo: "+getPercentage(rate.rate_mean)+
+			" ja mediaani: "+getPercentage(rate.rate_median)+".");
 	})
+}
+
+Stats.prototype.printRatesCSV = function(){
+	let content = [];
+	content.push(["test", "min", "lower", "median", "upper", "max"]);
+	
+	this.getRates().forEach(rate => {
+		content.push([rate.code, getPercentage(rate.rate_lowest), getPercentage(rate.rate_lowerQ), getPercentage(rate.rate_median), getPercentage(rate.rate_upperQ), getPercentage(rate.rate_highest) ]);
+	})
+	exportToCSV(content);
 }
 
 function sortByRates( testA, testB ) {
@@ -330,6 +367,8 @@ function getPercentage(value){
 	}
 	return (value * 100).toFixed(0) +" %";
 }
+
+
 
 
 /**
