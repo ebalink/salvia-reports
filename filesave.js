@@ -66,7 +66,9 @@ function uploadExistingStatsJSON(){
 
 	 fr.onload = function(e) { 
 		 //var stats = Object.assign(new Stats(), JSON.parse(e.target.result, reviver));
-	 	stats = JSON.parse(e.target.result, reviver);
+	 	let stats_ = JSON.parse(e.target.result, reviver);
+		console.log("imported "+files[0].name);
+		stats.merge(stats_);
 		
 		// assing the objects as class instances
 		/*let results = new Map();
@@ -77,10 +79,10 @@ function uploadExistingStatsJSON(){
 		}
 		stats.testresults = results;*/
 		allDone();
-		console.log("imported "+files[0].name);
-		console.log("Stats now contain "+stats.getCount_reports()+" testreports, "
+		
+		/*console.log("Stats now contain "+stats.getCount_reports()+" testreports, "
 			+stats.getCount_testTypes()+" unique test types and " 
-			+ stats.getCount_testCases() +" unique tests on element.");
+			+ stats.getCount_testCases() +" unique tests on element.");*/
 	 }
 	 fr.readAsText(files.item(0));
 }

@@ -207,6 +207,17 @@ Stats = function(){
 	this.testresults = new Map(); // key: testcode, value: TestResult object
 }
 
+Stats.prototype.merge = function(other){
+	other.tests.forEach( a => {
+		this.tests.push(a);
+		this.addResults(a.testresults);
+	})
+	console.log("Merge done. Stats now contain "+stats.getCount_reports()+" testreports, "
+			+stats.getCount_testTypes()+" unique test types and " 
+			+ stats.getCount_testCases() +" unique tests on element.");
+	
+}
+
 Stats.prototype.addQWResult = function(data){
 	let qwresult = new QW_Result();
 	qwresult.parseTests(data);
