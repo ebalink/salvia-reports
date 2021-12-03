@@ -56,6 +56,8 @@ QW_Result.prototype.parseTests = function(data, filename){
 	})
 	
 	// now we add the rates for every test
+	// at this point the rate list will contain one value only, but after we've merged several same code tests, the resulting 
+	// TestResult object will have a list of rates of them all
 	this.testresults.forEach( test => {
 		if(test.getRate() != undefined){
 			test.rate_list.push(test.getRate());
@@ -66,6 +68,7 @@ QW_Result.prototype.parseTests = function(data, filename){
 TestResult = function(){
 	this.code = "";
 	this.name = "";
+	this.site = "";
 	//this.count_total = 0;
 	this.count_passed = 0;
 	this.count_warnings = 0;
@@ -73,81 +76,86 @@ TestResult = function(){
 	this.count_inapplicable = 0;
 	
 	// includes the rates from every test so we can get the median, mean, highest and lowest values
+	// 
 	this.rate_list = new Array();
 	// number of sites that this test resulted other than inapplicable
 	this.sites = 0;
 }
 
-TestResult.prototype.getRate_mean = function(){
-	if(this.rate_list.length == 0){
-		return undefined;
-	}
-	let total = 0;
-	this.rate_list.forEach( rate => total += rate);
-	return total / this.rate_list.length;
+TestResult.prototype.copy = function(){
+	return Object.assign(new TestResult(), this);
 }
 
-TestResult.prototype.getRate_median = function(){
-	if(this.rate_list.length == 0){
-		return undefined;
-	}
-	this.rate_list.sort();
-	let med = 0;
-	if(this.rate_list.length > 1){
-		med = Math.round(this.rate_list.length / 2);
-	}
-	return this.rate_list[med];
-}
-
-TestResult.prototype.getRate_lowerQ = function(){
-	if(this.rate_list.length == 0){
-		return undefined;
-	}
-	this.rate_list.sort();
-	let x = 0;
-	if(this.rate_list.length > 1){
-		x = Math.round(this.rate_list.length * 0.25);
-	}
-	return this.rate_list[x];
-}
-
-TestResult.prototype.getRate_upperQ = function(){
-	if(this.rate_list.length == 0){
-		return undefined;
-	}
-	this.rate_list.sort();
-	let x = 0;
-	if(this.rate_list.length > 1){
-		x = Math.round(this.rate_list.length * 0.75 );
-	}
-	return this.rate_list[x];
-}
-
-TestResult.prototype.getRate_lowest = function(){
-	if(this.rate_list.length == 0){
-		return undefined;
-	}
-	let lowest = this.rate_list[0];
-	this.rate_list.forEach( val => {
-		if(val < lowest) {
-			lowest = val;
-		}
-	})
-	return lowest;
-}
-
-TestResult.prototype.getRate_highest = function(){
-	if(this.rate_list.length == 0){
-		return undefined;
-	}
-	let highest = this.rate_list[0];
-	this.rate_list.forEach( val => {
-		if(val > highest) {
-			highest = val;
-		}
-	})
-	return highest;
-}
+//TestResult.prototype.getRate_mean = function(){
+//	if(this.rate_list.length == 0){
+//		return undefined;
+//	}
+//	let total = 0;
+//	this.rate_list.forEach( rate => total += rate);
+//	return total / this.rate_list.length;
+//}
+//
+//TestResult.prototype.getRate_median = function(){
+//	if(this.rate_list.length == 0){
+//		return undefined;
+//	}
+//	this.rate_list.sort();
+//	let med = 0;
+//	if(this.rate_list.length > 1){
+//		med = Math.round(this.rate_list.length / 2);
+//	}
+//	return this.rate_list[med];
+//}
+//
+//TestResult.prototype.getRate_lowerQ = function(){
+//	if(this.rate_list.length == 0){
+//		return undefined;
+//	}
+//	this.rate_list.sort();
+//	let x = 0;
+//	if(this.rate_list.length > 1){
+//		x = Math.round(this.rate_list.length * 0.25);
+//	}
+//	return this.rate_list[x];
+//}
+//
+//TestResult.prototype.getRate_upperQ = function(){
+//	if(this.rate_list.length == 0){
+//		return undefined;
+//	}
+//	this.rate_list.sort();
+//	let x = 0;
+//	if(this.rate_list.length > 1){
+//		x = Math.round(this.rate_list.length * 0.75 );
+//	}
+//	return this.rate_list[x];
+//}
+//
+//TestResult.prototype.getRate_lowest = function(){
+//	if(this.rate_list.length == 0){
+//		return undefined;
+//	}
+//	let lowest = this.rate_list[0];
+//	this.rate_list.forEach( val => {
+//		if(val < lowest) {
+//			lowest = val;
+//		}
+//	})
+//	return lowest;
+//}
+//
+//TestResult.prototype.getRate_highest = function(){
+//	if(this.rate_list.length == 0){
+//		return undefined;
+//	}
+//	let highest = this.rate_list[0];
+//	this.rate_list.forEach( val => {
+//		if(val > highest) {
+//			highest = val;
+//		}
+//	})
+//	return highest;
+//}
 
 
 TestResult.prototype.getRate = function(){
@@ -163,23 +171,23 @@ TestResult.prototype.getRateForPrint = function(){
 	}
 	return (((this.count_passed + this.count_warnings) / this.getTotal()) * 100).toFixed(0) +" %";
 }
-
-TestResult.prototype.merge = function(newTestResult){
-	if(!(newTestResult instanceof TestResult) ){
-		throw new Error("newtestResult not an instance of TestResult", newTestResult);
-	}
-	if( this.code != newTestResult.code){
-		throw new Error("test result codes don't match", this, newTestResult);
-	}
-	this.count_passed += newTestResult.count_passed;
-	this.count_warnings += newTestResult.count_warnings;
-	this.count_inapplicable += newTestResult.count_inapplicable;
-	this.count_failed += newTestResult.count_failed;
-	
-	if(newTestResult.rate_list[0] != null){
-		this.rate_list.push(newTestResult.rate_list[0]);
-	}
-}
+//
+//TestResult.prototype.merge = function(newTestResult){
+//	if(!(newTestResult instanceof TestResult) ){
+//		throw new Error("newtestResult not an instance of TestResult", newTestResult);
+//	}
+//	if( this.code != newTestResult.code){
+//		throw new Error("test result codes don't match", this, newTestResult);
+//	}
+//	this.count_passed += newTestResult.count_passed;
+//	this.count_warnings += newTestResult.count_warnings;
+//	this.count_inapplicable += newTestResult.count_inapplicable;
+//	this.count_failed += newTestResult.count_failed;
+//	
+//	if(newTestResult.rate_list[0] != null){
+//		this.rate_list.push(newTestResult.rate_list[0]);
+//	}
+//}
 
 TestResult.prototype.addResult = function(resultType){
 	if(resultType.toLowerCase() == "passed"){
@@ -216,17 +224,134 @@ TestResult.prototype.getTotal_full = function(){
 }
 
 
+TestCollection = function(){
+	this.code = "";
+	this.name = "";
+	
+	// array of all TestResult -objects that have any other value than inapplicable
+	this.testresults = new Array();
+}
+
+TestCollection.prototype.addTest = function(testResult){
+	if(this.code != testResult.code){
+		throw Error("Invalid code for testResult");
+	}
+	if(testResult.getTotal() == 0){
+		throw Error("Invalid total count");
+	}
+	this.testResults.push(testResult);
+}
+
+TestCollection.prototype.getRate_mean = function(){
+	if(this.testresults.length == 0){
+		return undefined;
+	}
+	let total = 0;
+	this.testresults.forEach( result => total += result.getRate());
+	return total / this.testresults.length;
+}
+
+TestCollection.prototype.getRate_median = function(){
+	if(this.testresults.length == 0){
+		return undefined;
+	}
+	this.testresults.sort(sortTestResults);
+	let med = 0;
+	if(this.testresults.length > 1){
+		med = Math.round(this.testresults.length / 2)-1;
+	}
+	let result = this.testresults[med];
+	if(result == undefined){
+		console.log("here");
+	}
+	return result.getRate();
+}
+
+TestCollection.prototype.getRate_lowerQ = function(){
+	if(this.testresults.length == 0){
+		return undefined;
+	}
+	this.testresults.sort(sortTestResults);
+
+	let x = 0;
+	if(this.testresults.length > 1){
+		x = Math.round(this.testresults.length * 0.25)-1;
+	}
+	let result = this.testresults[x];
+	if(result == undefined){
+		console.log("here");
+	}
+	return result.getRate();
+}
+
+TestCollection.prototype.getRate_upperQ = function(){
+	if(this.testresults.length == 0){
+		return undefined;
+	}
+	this.testresults.sort(sortTestResults);
+	
+	let x = 0;
+	if(this.testresults.length > 1){
+		x = Math.round(this.testresults.length * 0.75 )-1;
+	}
+	let result = this.testresults[x];
+	if(result == undefined){
+		console.log("here");
+	}
+	return result.getRate();
+}
+
+TestCollection.prototype.getRate_lowest = function(){
+	if(this.testresults.length == 0){
+		return undefined;
+	}
+	let lowest = this.testresults[0].getRate();
+	this.testresults.forEach( test => {
+		if(test.getRate() < lowest) {
+			lowest = test.getRate();
+		}
+	})
+	return lowest;
+}
+
+TestCollection.prototype.getRate_highest = function(){
+	if(this.testresults.length == 0){
+		return undefined;
+	}
+	let highest = this.testresults[0].getRate();
+	this.testresults.forEach( test => {
+		if(test.getRate() > highest) {
+			highest = test.getRate();
+		}
+	})
+	return highest;
+}
+
+TestCollection.prototype.getTotal = function(){
+	if(this.testresults.length == 0){
+		return undefined;
+	}
+	let total = 0;
+	this.testresults.forEach( result => total += result.getTotal() );
+	return total;
+}
+
+
+
 Stats = function(){
 	// Array of QW_Result objects
 	this.tests = [];
 	// Map of TestResult objects
 	this.testresults = new Map(); // key: testcode, value: TestResult object
+	
+	// Map of all testCollections
+	this.testCollections = new Map();
 }
 
 Stats.prototype.merge = function(other){
 	other.tests.forEach( a => {
 		this.tests.push(a);
-		this.addResults(a.testresults);
+//		this.addResults(a.testresults);
 	})
 	console.log("Merge done. Stats now contain "+stats.getCount_reports()+" testreports, "
 			+stats.getCount_testTypes()+" unique test types and " 
@@ -234,28 +359,40 @@ Stats.prototype.merge = function(other){
 	
 }
 
-/**
- * Browses through each test report stats and updates the test stat infos with number of sites this was successfully tested against
- */
-Stats.prototype.updateSitesCount = function(){
-	//initialize
-	this.testresults.forEach(res => res.sites = 0 );
-	
-	// update
-	this.tests.forEach(qw => {
-		qw.getTestsWithResults().forEach(testkey => {
-			this.testresults.get(testkey).sites++;
+Stats.prototype.createCollections = function(){
+	this.tests.forEach( qwresult => {
+		qwresult.testresults.forEach( (testResult, code) => {
+			testResult.site = qwresult.url;
+			this.addResult(testResult);
 		})
 	})
 }
+
+///**
+// * Browses through each test report stats and updates the test stat infos with number of sites this was successfully tested against
+// */
+//Stats.prototype.updateSitesCount = function(){
+//	//initialize
+//	this.testresults.forEach(res => res.sites = 0 );
+//	
+//	// update
+//	this.tests.forEach(qw => {
+//		qw.getTestsWithResults().forEach(testkey => {
+//			this.testresults.get(testkey).sites++;
+//		})
+//	})
+//}
 
 Stats.prototype.addQWResult = function(data){
 	let qwresult = new QW_Result();
 	qwresult.parseTests(data);
 	this.tests.push(qwresult);
-	this.addResults(qwresult.testresults);
+//	this.addResults(qwresult.testresults);
 }
 
+/**
+ * @results Map of TestResult code => TestResult
+ */
 Stats.prototype.addResults = function(results){
 	if(!(results instanceof Map) ){
 		throw new Error("results not an instance of Map", results);
@@ -263,16 +400,24 @@ Stats.prototype.addResults = function(results){
 	results.forEach(value => this.addResult(value));
 }
 
-Stats.prototype.addResult = function(result){
-	if(!(result instanceof TestResult) ){
-		throw new Error("result not an instance of TestResult", result);
+/**
+ * @result TestResult object
+ */
+Stats.prototype.addResult = function(testResult){
+	if(!(testResult instanceof TestResult) ){
+		throw new Error("testResult not an instance of TestResult", testResult);
 	}
 	
-	if(this.testresults.get(result.code) === undefined){
-		this.testresults.set(result.code, result);
-	}
-	else{
-		this.testresults.get(result.code).merge(result);
+	if(testResult.getTotal() > 0){
+	
+		if(this.testCollections.get(testResult.code) === undefined){
+			let testCollection = new TestCollection();
+			testCollection.code = testResult.code;
+			testCollection.name = testResult.name;
+			this.testCollections.set(testResult.code, testCollection);
+		}
+		this.testCollections.get(testResult.code).testresults.push(testResult);
+		
 	}
 }
 
@@ -293,35 +438,49 @@ Stats.prototype.getCount_testCases = function(){
 Stats.prototype.getRates = function(median){
 	let tests = new Array();
 	
-	this.testresults.forEach(value => {
-		tests.push(value);
-	});	
-	if(median == true){
-		tests.sort(sortByRates_median);
-	}
-	else{
-		tests.sort(sortByRates);
-	}
-	
-	let sorted = new Array();
-	tests.forEach( value => {
+	this.testCollections.forEach( (collection, code) => {
 		let rate = {
-			"code" : value.code,
-			"name" : value.name,
-			"rate" : value.getRateForPrint(),
-			"rate_mean" : value.getRate_mean(),
-			"rate_median" : value.getRate_median(),
-			"rate_highest" : value.getRate_highest(),
-			"rate_lowest" : value.getRate_lowest(),
-			"rate_lowerQ" : value.getRate_lowerQ(),
-			"rate_upperQ" : value.getRate_upperQ(),
-			"count": value.getTotal(),
-			"sites": value.sites
-			
+			"code" : code,
+			"name" : collection.name,
+//			"rate" : value.getRateForPrint(),
+			"rate_mean" : collection.getRate_mean(),
+			"rate_median" : collection.getRate_median(),
+			"rate_highest" : collection.getRate_highest(),
+			"rate_lowest" : collection.getRate_lowest(),
+			"rate_lowerQ" : collection.getRate_lowerQ(),
+			"rate_upperQ" : collection.getRate_upperQ(),
+			"count": collection.getTotal(),
+			"sites": collection.testresults.length
 		}
-		sorted.push(rate);
-	})
-	return sorted;
+		tests.push(rate);
+	});	
+	return tests;
+//	if(median == true){
+//		tests.sort(sortByRates_median);
+//	}
+//	else{
+//		tests.sort(sortByRates);
+//	}
+	
+//	let sorted = new Array();
+//	tests.forEach( value => {
+//		let rate = {
+//			"code" : value.code,
+//			"name" : value.name,
+//			"rate" : value.getRateForPrint(),
+//			"rate_mean" : value.getRate_mean(),
+//			"rate_median" : value.getRate_median(),
+//			"rate_highest" : value.getRate_highest(),
+//			"rate_lowest" : value.getRate_lowest(),
+//			"rate_lowerQ" : value.getRate_lowerQ(),
+//			"rate_upperQ" : value.getRate_upperQ(),
+//			"count": value.getTotal(),
+//			"sites": value.sites
+//			
+//		}
+//		sorted.push(rate);
+//	})
+//	return sorted;
 }
 
 
@@ -336,7 +495,7 @@ Stats.prototype.printRates = function(){
 
 Stats.prototype.printRatesCSV = function(){
 	
-	this.updateSitesCount();
+//	this.updateSitesCount();
 	let content = [];
 	content.push(["test", "sites", "min", "lower", "median", "upper", "max", "mean"]);
 	
@@ -347,29 +506,46 @@ Stats.prototype.printRatesCSV = function(){
 }
 
 Stats.prototype.printRatesCSV2 = function(){
-	this.updateSitesCount();
-	let content = new Map();
+//	this.updateSitesCount();
+	let content = new Array();
 	
-	this.testresults.forEach( (value, key) => {
-		content.set(key, new Array());
-	})
-	this.tests.forEach( qw => {
-		qw.testresults.forEach( (value, key) => {
-			content.get(key).push(value.getRate());
-		})
+	content.push(["QW-rule ID", "found elements"]);
+	this.testCollections.forEach( (value, key) => {
+		let newarray = [];
+		newarray.push(key);
+		let total = 0;
+		value.testresults.forEach( testresult => {
+			total += testresult.getTotal();
+		});
+		newarray.push(total);
+		value.testresults.forEach( testresult => {
+			newarray.push(testresult.getRate()) 
+		});
+		content.push(newarray);
 	})
 	
-	// transform content to array
-	let content_array = [];
-	content.forEach( (value, key) => {
-		let row = [];
-		row.push(key);
-		value.forEach( rate => row.push(rate));
-		content_array.push(row);
-		
-		
-	})
-	exportToCSV(content_array);
+	exportToCSV(content);
+	
+//	this.testresults.forEach( (value, key) => {
+//		content.set(key, new Array());
+//	})
+//	this.tests.forEach( qw => {
+//		qw.testresults.forEach( (value, key) => {
+//			content.get(key).push(value.getRate());
+//		})
+//	})
+//	
+//	// transform content to array
+//	let content_array = [];
+//	content.forEach( (value, key) => {
+//		let row = [];
+//		row.push(key);
+//		value.forEach( rate => row.push(rate));
+//		content_array.push(row);
+//		
+//		
+//	})
+//	exportToCSV(content_array);
 }
 
 function sortByRates( testA, testB ) {
@@ -440,6 +616,20 @@ function getPercentage(value){
 }
 
 
+function sortTestResults( res1, res2 ) {
+	if(res1.getRate() == undefined || res2.getRate() == undefined){
+		throw Error("invalid TestResult");
+	}
+	if(res1.getRate() < res2.getRate()){
+		return -1;
+	}
+	if(res1.getRate() > res2.getRate()){
+		return 1;
+	}
+	else{
+		return 0;
+	}
+}
 
 
 /**
